@@ -22,3 +22,7 @@ POSTGRES_DB=yourdb
 To confirm the database is up and running connect to the instance:
 psql -h localhost -U yourusername -d yourdatabase
 Once in the shell type \l to see all available databases
+
+Make a migration and confirm the table exists
+
+Shutdown container, turn it back on and make sure you see your changes from before shutdown

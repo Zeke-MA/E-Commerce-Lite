@@ -4,6 +4,6 @@ import (
 	"database/sql"
 )
 
-type siteConfig struct {
+type SiteConfig struct {
 	DbConnection *sql.DB
 }
