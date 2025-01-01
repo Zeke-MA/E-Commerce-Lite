@@ -7,8 +7,10 @@ import (
 	"os"
 
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/config"
+	"github.com/Zeke-MA/E-Commerce-Lite/internal/database"
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/handlers"
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -28,6 +30,7 @@ func main() {
 
 	siteConfig := &config.SiteConfig{
 		DbConnection: dbConn,
+		DbQueries:    database.New(dbConn),
 	}
 
 	handlerConfig := &handlers.HandlerSiteConfig{SiteConfig: siteConfig}
