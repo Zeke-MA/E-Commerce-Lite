@@ -26,7 +26,6 @@ func (cfg *HandlerSiteConfig) CreateUserHandler(w http.ResponseWriter, r *http.R
 		Password string `json:"password"`
 	}
 
-	// Encapsulate this logic in another function within server
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
 	err := decoder.Decode(&params)
@@ -43,16 +42,31 @@ func (cfg *HandlerSiteConfig) CreateUserHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	dbUserExists := database.CheckUsernameEmailUniqueParams{
+		Username: params.Username,
+		Email:    params.Email,
+	}
+
+	exists, err := cfg.DbQueries.CheckUsernameEmailUnique(r.Context(), dbUserExists)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
+	}
+
+	if exists {
+		server.RespondWithError(w, http.StatusConflict, string(server.MsgInternalError), err)
+		return
+	}
+
 	dbParams := database.CreateUserParams{
 		Username:       params.Username,
-		Email:          params.Username,
+		Email:          params.Email,
 		HashedPassword: hashedPassword,
 	}
 
 	dbUser, err := cfg.DbQueries.CreateUser(r.Context(), dbParams)
-	/*
-		Add some logic to check if the username and or email already exists
-	*/
+
 	if err != nil {
 		server.RespondWithError(w, http.StatusInternalServerError, "error creating user: ", err)
 		return
