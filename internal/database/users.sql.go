@@ -9,6 +9,26 @@ import (
 	"context"
 )
 
+const checkUsernameEmailUnique = `-- name: CheckUsernameEmailUnique :one
+SELECT EXISTS (
+    SELECT 1
+    FROM users
+    WHERE username = $1 OR email = $2
+) AS exists
+`
+
+type CheckUsernameEmailUniqueParams struct {
+	Username string `json:"username"`
+	Email    string `json:"email"`
+}
+
+func (q *Queries) CheckUsernameEmailUnique(ctx context.Context, arg CheckUsernameEmailUniqueParams) (bool, error) {
+	row := q.db.QueryRowContext(ctx, checkUsernameEmailUnique, arg.Username, arg.Email)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO public.users (id, username, hashed_password, created_at, updated_at, email)
 VALUES (gen_random_uuid(), $1, $2, NOW(), NOW(), $3)
