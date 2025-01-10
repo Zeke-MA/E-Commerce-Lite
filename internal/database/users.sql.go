@@ -32,7 +32,7 @@ func (q *Queries) CheckUsernameEmailUnique(ctx context.Context, arg CheckUsernam
 const createUser = `-- name: CreateUser :one
 INSERT INTO public.users (id, username, hashed_password, created_at, updated_at, email)
 VALUES (gen_random_uuid(), $1, $2, NOW(), NOW(), $3)
-RETURNING id, username, hashed_password, created_at, updated_at, email
+RETURNING id, username, hashed_password, created_at, updated_at, email, is_admin
 `
 
 type CreateUserParams struct {
@@ -51,6 +51,27 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Email,
+		&i.IsAdmin,
+	)
+	return i, err
+}
+
+const getUser = `-- name: GetUser :one
+SELECT id, username, hashed_password, created_at, updated_at, email, Is_Admin FROM users
+WHERE username = $1
+`
+
+func (q *Queries) GetUser(ctx context.Context, username string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUser, username)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.HashedPassword,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Email,
+		&i.IsAdmin,
 	)
 	return i, err
 }

@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/config"
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/database"
@@ -29,8 +30,11 @@ func main() {
 	}
 
 	siteConfig := &config.SiteConfig{
-		DbConnection: dbConn,
-		DbQueries:    database.New(dbConn),
+		DbConnection:       dbConn,
+		DbQueries:          database.New(dbConn),
+		RefreshTokenExpiry: time.Hour * 24 * 14,
+		JWTExpiry:          time.Hour,
+		JWTSecret:          os.Getenv("JWT_SECRET"),
 	}
 
 	handlerConfig := &handlers.HandlerSiteConfig{SiteConfig: siteConfig}
@@ -38,6 +42,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("POST /api/create_user", handlerConfig.CreateUserHandler)
+	mux.HandleFunc("POST /api/login", handlerConfig.LoginUserHandler)
 	mux.Handle("/app/", http.StripPrefix("/app", http.FileServer(http.Dir("."))))
 
 	server := http.Server{
