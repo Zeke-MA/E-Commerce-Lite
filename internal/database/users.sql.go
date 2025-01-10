@@ -7,6 +7,8 @@ package database
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const checkUsernameEmailUnique = `-- name: CheckUsernameEmailUnique :one
@@ -32,7 +34,7 @@ func (q *Queries) CheckUsernameEmailUnique(ctx context.Context, arg CheckUsernam
 const createUser = `-- name: CreateUser :one
 INSERT INTO public.users (id, username, hashed_password, created_at, updated_at, email)
 VALUES (gen_random_uuid(), $1, $2, NOW(), NOW(), $3)
-RETURNING id, username, hashed_password, created_at, updated_at, email
+RETURNING id, username, hashed_password, created_at, updated_at, email, is_admin
 `
 
 type CreateUserParams struct {
@@ -51,6 +53,26 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Email,
+		&i.IsAdmin,
 	)
 	return i, err
+}
+
+const isUserAdmin = `-- name: IsUserAdmin :one
+SELECT Is_Admin
+FROM users
+WHERE id = $1 
+AND username = $2
+`
+
+type IsUserAdminParams struct {
+	ID       uuid.UUID `json:"id"`
+	Username string    `json:"username"`
+}
+
+func (q *Queries) IsUserAdmin(ctx context.Context, arg IsUserAdminParams) (bool, error) {
+	row := q.db.QueryRowContext(ctx, isUserAdmin, arg.ID, arg.Username)
+	var is_admin bool
+	err := row.Scan(&is_admin)
+	return is_admin, err
 }

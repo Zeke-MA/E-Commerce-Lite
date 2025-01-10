@@ -9,3 +9,9 @@ SELECT EXISTS (
     FROM users
     WHERE username = $1 OR email = $2
 ) AS exists;
+
+-- name: IsUserAdmin :one
+SELECT Is_Admin
+FROM users
+WHERE id = $1 
+AND username = $2;
