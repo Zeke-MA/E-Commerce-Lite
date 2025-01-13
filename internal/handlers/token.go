@@ -8,13 +8,18 @@ import (
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/server"
 )
 
+type RefreshToken struct {
+	RefreshToken string `json:"refresh_token"`
+}
+
+type AccessToken struct {
+	AccessToken string
+}
+
 func (cfg *HandlerSiteConfig) RefreshAccessToken(w http.ResponseWriter, r *http.Request) {
-	type TokenRequest struct {
-		RefreshToken string `json:"refresh_token"`
-	}
 
 	decoder := json.NewDecoder(r.Body)
-	tokenRequest := TokenRequest{}
+	tokenRequest := RefreshToken{}
 	err := decoder.Decode(&tokenRequest)
 
 	if err != nil {
@@ -41,12 +46,51 @@ func (cfg *HandlerSiteConfig) RefreshAccessToken(w http.ResponseWriter, r *http.
 		return
 	}
 
-	type TokenResponse struct {
-		AccessToken string
-	}
-
-	tokenResponse := TokenResponse{AccessToken: newRefreshToken}
+	tokenResponse := AccessToken{AccessToken: newRefreshToken}
 
 	server.RespondWithJSON(w, http.StatusOK, tokenResponse)
+
+}
+
+func (cfg *HandlerSiteConfig) RevokeRefreshToken(w http.ResponseWriter, r *http.Request) {
+
+	bearerAuth, err := auth.GetBearerToken(r.Header)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusUnauthorized, string(server.MsgUnauthorized), err)
+		return
+	}
+
+	_, err = auth.ValidateJWT(bearerAuth, cfg.JWTSecret)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusUnauthorized, string(server.MsgUnauthorized), err)
+		return
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	tokenRequest := RefreshToken{}
+	err = decoder.Decode(&tokenRequest)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
+	}
+
+	tokenRevokeDb, err := cfg.DbQueries.RevokeRefreshToken(r.Context(), tokenRequest.RefreshToken)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
+	}
+
+	affected, _ := tokenRevokeDb.RowsAffected()
+
+	if affected == 0 {
+		server.RespondWithError(w, http.StatusNotFound, string(server.MsgNotFound), err)
+		return
+	}
+
+	server.RespondWithJSON(w, http.StatusNoContent, nil)
 
 }

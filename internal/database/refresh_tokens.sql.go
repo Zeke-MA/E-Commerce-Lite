@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -55,4 +56,14 @@ func (q *Queries) RefreshTokenValid(ctx context.Context, token string) (RefreshT
 	var i RefreshTokenValidRow
 	err := row.Scan(&i.Token, &i.UserID)
 	return i, err
+}
+
+const revokeRefreshToken = `-- name: RevokeRefreshToken :execresult
+UPDATE refresh_tokens
+SET revoked_at = NOW()
+WHERE token = $1
+`
+
+func (q *Queries) RevokeRefreshToken(ctx context.Context, token string) (sql.Result, error) {
+	return q.db.ExecContext(ctx, revokeRefreshToken, token)
 }
