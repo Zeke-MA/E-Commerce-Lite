@@ -39,14 +39,20 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 }
 
 const refreshTokenValid = `-- name: RefreshTokenValid :one
-SELECT token FROM refresh_tokens
+SELECT token, user_id FROM refresh_tokens
 WHERE revoked_at IS NULL
 AND expires_at > NOW()
 AND token = $1
 `
 
-func (q *Queries) RefreshTokenValid(ctx context.Context, token string) (string, error) {
+type RefreshTokenValidRow struct {
+	Token  string    `json:"token"`
+	UserID uuid.UUID `json:"user_id"`
+}
+
+func (q *Queries) RefreshTokenValid(ctx context.Context, token string) (RefreshTokenValidRow, error) {
 	row := q.db.QueryRowContext(ctx, refreshTokenValid, token)
-	err := row.Scan(&token)
-	return token, err
+	var i RefreshTokenValidRow
+	err := row.Scan(&i.Token, &i.UserID)
+	return i, err
 }

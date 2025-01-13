@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/auth"
@@ -8,22 +9,44 @@ import (
 )
 
 func (cfg *HandlerSiteConfig) RefreshAccessToken(w http.ResponseWriter, r *http.Request) {
-	// if the responding user exists and has a valid access token generate new access token and respond back
+	type TokenRequest struct {
+		RefreshToken string `json:"refresh_token"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	tokenRequest := TokenRequest{}
+	err := decoder.Decode(&tokenRequest)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
+	}
+
+	validRefreshToken, err := cfg.DbQueries.RefreshTokenValid(r.Context(), tokenRequest.RefreshToken)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusNotFound, string(server.MsgNotFound), err)
+		return
+	}
+
+	if validRefreshToken.Token != tokenRequest.RefreshToken {
+		server.RespondWithError(w, http.StatusUnauthorized, string(server.MsgUnauthorized), err)
+		return
+	}
+
+	newRefreshToken, err := auth.GenerateJWT(validRefreshToken.UserID, cfg.JWTSecret, cfg.JWTExpiry)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
+	}
+
 	type TokenResponse struct {
-		AccessToken string `json:"access_token"`
+		AccessToken string
 	}
 
-	bearerToken, err := auth.GetBearerToken(r.Header)
-	if err != nil {
-		server.RespondWithError(w, http.StatusUnauthorized, "Access token missing", err)
-		return
-	}
+	tokenResponse := TokenResponse{AccessToken: newRefreshToken}
 
-	_, err = auth.ValidateJWT(bearerToken, cfg.JWTSecret)
-
-	if err != nil {
-		server.RespondWithError(w, http.StatusUnauthorized, "Unauthorized token request", err)
-		return
-	}
+	server.RespondWithJSON(w, http.StatusOK, tokenResponse)
 
 }

@@ -43,6 +43,7 @@ func main() {
 
 	mux.HandleFunc("POST /api/create_user", handlerConfig.CreateUserHandler)
 	mux.HandleFunc("POST /api/login", handlerConfig.LoginUserHandler)
+	mux.HandleFunc("POST /api/refresh", handlerConfig.RefreshAccessToken)
 	mux.Handle("/app/", http.StripPrefix("/app", http.FileServer(http.Dir("."))))
 
 	server := http.Server{
