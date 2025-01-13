@@ -10,8 +10,7 @@ SELECT EXISTS (
     WHERE username = $1 OR email = $2
 ) AS exists;
 
--- name: IsUserAdmin :one
-SELECT Is_Admin
-FROM users
-WHERE id = $1 
-AND username = $2;
+
+-- name: GetUser :one
+SELECT id, username, hashed_password, created_at, updated_at, email, Is_Admin FROM users
+WHERE username = $1;

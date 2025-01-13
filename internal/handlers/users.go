@@ -12,11 +12,13 @@ import (
 )
 
 type UserResponse struct {
-	ID        uuid.UUID `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Email     string    `json:"email"`
-	Username  string    `json:"username"`
+	ID           uuid.UUID `json:"id"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+	Email        string    `json:"email"`
+	Username     string    `json:"username"`
+	AccessToken  string    `json:"access_token"`
+	RefreshToken string    `json:"refresh_token"`
 }
 
 func (cfg *HandlerSiteConfig) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -78,6 +80,76 @@ func (cfg *HandlerSiteConfig) CreateUserHandler(w http.ResponseWriter, r *http.R
 		Username:  dbUser.Username,
 		CreatedAt: dbUser.CreatedAt,
 		UpdatedAt: dbUser.UpdatedAt,
+	}
+
+	server.RespondWithJSON(w, http.StatusOK, userResponse)
+
+}
+
+func (cfg *HandlerSiteConfig) LoginUserHandler(w http.ResponseWriter, r *http.Request) {
+	type parameters struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	params := parameters{}
+	err := decoder.Decode(&params)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
+	}
+
+	dbUser, err := cfg.DbQueries.GetUser(r.Context(), params.Username)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusNotFound, string(server.MsgNotFound), err)
+		return
+	}
+
+	err = auth.CheckPasswordHash(params.Password, dbUser.HashedPassword)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusUnauthorized, string(server.MsgUnauthorized), err)
+		return
+	}
+
+	refreshToken, err := auth.GenerateRefreshToken()
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
+	}
+
+	refreshTokenParams := database.CreateRefreshTokenParams{
+		Token:     refreshToken,
+		UserID:    dbUser.ID,
+		ExpiresAt: time.Now().Add(cfg.RefreshTokenExpiry),
+	}
+
+	_, err = cfg.DbQueries.CreateRefreshToken(r.Context(), refreshTokenParams)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
+	}
+
+	accesToken, err := auth.GenerateJWT(dbUser.ID, cfg.JWTSecret, cfg.JWTExpiry)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
+	}
+
+	userResponse := UserResponse{
+		ID:           dbUser.ID,
+		CreatedAt:    dbUser.CreatedAt,
+		UpdatedAt:    dbUser.UpdatedAt,
+		Email:        dbUser.Email,
+		Username:     dbUser.Username,
+		AccessToken:  accesToken,
+		RefreshToken: refreshToken,
 	}
 
 	server.RespondWithJSON(w, http.StatusOK, userResponse)
