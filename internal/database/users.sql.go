@@ -54,7 +54,6 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.UpdatedAt,
 		&i.Email,
 		&i.IsAdmin,
-
 	)
 	return i, err
 }
@@ -79,21 +78,19 @@ func (q *Queries) GetUser(ctx context.Context, username string) (User, error) {
 	return i, err
 }
 
-const isUserAdmin = `-- name: IsUserAdmin :one
-SELECT Is_Admin
-FROM users
-WHERE id = $1 
-AND username = $2
+const isAdmin = `-- name: IsAdmin :one
+SELECT id, Is_Admin from users
+WHERE username = $1
 `
 
-type IsUserAdminParams struct {
-	ID       uuid.UUID `json:"id"`
-	Username string    `json:"username"`
+type IsAdminRow struct {
+	ID      uuid.UUID `json:"id"`
+	IsAdmin bool      `json:"is_admin"`
 }
 
-func (q *Queries) IsUserAdmin(ctx context.Context, arg IsUserAdminParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, isUserAdmin, arg.ID, arg.Username)
-	var is_admin bool
-	err := row.Scan(&is_admin)
-	return is_admin, err
+func (q *Queries) IsAdmin(ctx context.Context, username string) (IsAdminRow, error) {
+	row := q.db.QueryRowContext(ctx, isAdmin, username)
+	var i IsAdminRow
+	err := row.Scan(&i.ID, &i.IsAdmin)
+	return i, err
 }

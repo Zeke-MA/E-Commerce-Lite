@@ -11,6 +11,18 @@ import (
 	"github.com/google/uuid"
 )
 
+type Product struct {
+	ID                 int32          `json:"id"`
+	ProductID          string         `json:"product_id"`
+	ProductName        string         `json:"product_name"`
+	UpcID              string         `json:"upc_id"`
+	ProductDescription sql.NullString `json:"product_description"`
+	CurrentPrice       sql.NullString `json:"current_price"`
+	OnHand             sql.NullInt32  `json:"on_hand"`
+	CreatedAt          sql.NullTime   `json:"created_at"`
+	UpdatedAt          sql.NullTime   `json:"updated_at"`
+}
+
 type RefreshToken struct {
 	Token     string       `json:"token"`
 	CreatedAt time.Time    `json:"created_at"`

@@ -14,3 +14,7 @@ SELECT EXISTS (
 -- name: GetUser :one
 SELECT id, username, hashed_password, created_at, updated_at, email, Is_Admin FROM users
 WHERE username = $1;
+
+-- name: IsAdmin :one
+SELECT id, Is_Admin from users
+WHERE username = $1;
