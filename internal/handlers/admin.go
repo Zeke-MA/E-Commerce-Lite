@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"context"
+	"net/http"
 
+	"github.com/Zeke-MA/E-Commerce-Lite/internal/server"
 	"github.com/google/uuid"
 )
 
-func IsUserAdmin(userId uuid.UUID, context context.Context, cfg *HandlerSiteConfig) (bool, error) {
+func isUserAdmin(userId uuid.UUID, context context.Context, cfg *HandlerSiteConfig) (bool, error) {
 	adminCheck, err := cfg.DbQueries.IsAdmin(context, userId.String())
 
 	if err != nil {
@@ -19,4 +21,8 @@ func IsUserAdmin(userId uuid.UUID, context context.Context, cfg *HandlerSiteConf
 
 	return true, nil
 
+}
+
+func (cfg *HandlerSiteConfig) AddProduct(w http.ResponseWriter, r *http.Request) {
+	server.RespondWithJSON(w, http.StatusNoContent, nil)
 }
