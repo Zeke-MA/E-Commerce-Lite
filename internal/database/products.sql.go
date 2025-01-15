@@ -39,3 +39,28 @@ func (q *Queries) AddProduct(ctx context.Context, arg AddProductParams) (sql.Res
 		arg.CreatedBy,
 	)
 }
+
+const removeProduct = `-- name: RemoveProduct :one
+DELETE FROM products
+WHERE product_id = $1
+RETURNING id, product_id, product_name, upc_id, product_description, current_price, on_hand, created_at, updated_at, created_by, modified_by
+`
+
+func (q *Queries) RemoveProduct(ctx context.Context, productID string) (Product, error) {
+	row := q.db.QueryRowContext(ctx, removeProduct, productID)
+	var i Product
+	err := row.Scan(
+		&i.ID,
+		&i.ProductID,
+		&i.ProductName,
+		&i.UpcID,
+		&i.ProductDescription,
+		&i.CurrentPrice,
+		&i.OnHand,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CreatedBy,
+		&i.ModifiedBy,
+	)
+	return i, err
+}

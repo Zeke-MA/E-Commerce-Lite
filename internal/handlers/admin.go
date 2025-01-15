@@ -54,7 +54,6 @@ func (cfg *HandlerSiteConfig) AddProduct(w http.ResponseWriter, r *http.Request)
 	authorized, err := cfg.isUserAdmin(r.Context(), requestUserID)
 
 	if err != nil {
-		log.Print("error user admin query")
 		log.Print(requestUserID)
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
 		return
@@ -69,7 +68,6 @@ func (cfg *HandlerSiteConfig) AddProduct(w http.ResponseWriter, r *http.Request)
 	err = decoder.Decode(&product)
 
 	if err != nil {
-		log.Print("error decodingjson")
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
 		return
 	}
@@ -87,7 +85,6 @@ func (cfg *HandlerSiteConfig) AddProduct(w http.ResponseWriter, r *http.Request)
 	insertProduct, err := cfg.DbQueries.AddProduct(r.Context(), addProduct)
 
 	if err != nil {
-		log.Print("error insert")
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
 		return
 	}
@@ -95,10 +92,61 @@ func (cfg *HandlerSiteConfig) AddProduct(w http.ResponseWriter, r *http.Request)
 	affected, _ := insertProduct.RowsAffected()
 
 	if affected == 0 {
-		log.Print("error no rows")
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
 		return
 	}
 
 	server.RespondWithJSON(w, http.StatusOK, addProduct)
+}
+
+func (cfg *HandlerSiteConfig) RemoveProduct(w http.ResponseWriter, r *http.Request) {
+	productID := r.PathValue("product_id")
+
+	if productID == "" {
+		server.RespondWithError(w, http.StatusNotFound, string(server.MsgNotFound), nil)
+	}
+
+	bearerToken, err := auth.GetBearerToken(r.Header)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusUnauthorized, string(server.MsgUnauthorized), err)
+		return
+	}
+
+	requestUserID, err := auth.ValidateJWT(bearerToken, cfg.JWTSecret)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusUnauthorized, string(server.MsgUnauthorized), err)
+		return
+	}
+
+	authorized, err := cfg.isUserAdmin(r.Context(), requestUserID)
+
+	if err != nil {
+		log.Print(requestUserID)
+		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
+	}
+
+	if !authorized {
+		server.RespondWithError(w, http.StatusUnauthorized, string(server.MsgUnauthorized), err)
+	}
+
+	removedProduct, err := cfg.DbQueries.RemoveProduct(r.Context(), productID)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
+	}
+
+	response := product{
+		ProductId:          removedProduct.ProductID,
+		ProductName:        removedProduct.ProductName,
+		UpcId:              removedProduct.UpcID,
+		ProductDescription: &removedProduct.ProductDescription.String,
+		CurrentPrice:       removedProduct.CurrentPrice,
+		OnHand:             int(removedProduct.OnHand),
+	}
+
+	server.RespondWithJSON(w, http.StatusOK, response)
 }
