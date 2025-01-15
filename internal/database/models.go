@@ -17,10 +17,12 @@ type Product struct {
 	ProductName        string         `json:"product_name"`
 	UpcID              string         `json:"upc_id"`
 	ProductDescription sql.NullString `json:"product_description"`
-	CurrentPrice       sql.NullString `json:"current_price"`
-	OnHand             sql.NullInt32  `json:"on_hand"`
+	CurrentPrice       string         `json:"current_price"`
+	OnHand             int32          `json:"on_hand"`
 	CreatedAt          sql.NullTime   `json:"created_at"`
 	UpdatedAt          sql.NullTime   `json:"updated_at"`
+	CreatedBy          uuid.UUID      `json:"created_by"`
+	ModifiedBy         uuid.NullUUID  `json:"modified_by"`
 }
 
 type RefreshToken struct {
