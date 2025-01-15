@@ -100,5 +100,5 @@ func (cfg *HandlerSiteConfig) AddProduct(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	server.RespondWithJSON(w, http.StatusNoContent, nil)
+	server.RespondWithJSON(w, http.StatusOK, addProduct)
 }
