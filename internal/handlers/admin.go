@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/auth"
@@ -13,16 +13,16 @@ import (
 )
 
 type product struct {
-	ProductId          string         `json:"product_id"`
-	ProductName        string         `json:"product_name"`
-	UpcId              string         `json:"upc_id"`
-	ProductDescription sql.NullString `json:"product_desc"`
-	CurrentPrice       string         `json:"price"`
-	OnHand             int            `json:"on_hand"`
+	ProductId          string  `json:"product_id"`
+	ProductName        string  `json:"product_name"`
+	UpcId              string  `json:"upc_id"`
+	ProductDescription *string `json:"product_desc"`
+	CurrentPrice       string  `json:"price"`
+	OnHand             int     `json:"on_hand"`
 }
 
 func (cfg *HandlerSiteConfig) isUserAdmin(context context.Context, userId uuid.UUID) (bool, error) {
-	adminCheck, err := cfg.DbQueries.IsAdmin(context, userId.String())
+	adminCheck, err := cfg.DbQueries.IsAdmin(context, userId)
 
 	if err != nil {
 		return false, err
@@ -54,6 +54,8 @@ func (cfg *HandlerSiteConfig) AddProduct(w http.ResponseWriter, r *http.Request)
 	authorized, err := cfg.isUserAdmin(r.Context(), requestUserID)
 
 	if err != nil {
+		log.Print("error user admin query")
+		log.Print(requestUserID)
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
 		return
 	}
@@ -67,6 +69,7 @@ func (cfg *HandlerSiteConfig) AddProduct(w http.ResponseWriter, r *http.Request)
 	err = decoder.Decode(&product)
 
 	if err != nil {
+		log.Print("error decodingjson")
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
 		return
 	}
@@ -74,7 +77,8 @@ func (cfg *HandlerSiteConfig) AddProduct(w http.ResponseWriter, r *http.Request)
 	addProduct := database.AddProductParams{
 		ProductID:          product.ProductId,
 		ProductName:        product.ProductName,
-		ProductDescription: product.ProductDescription,
+		UpcID:              product.UpcId,
+		ProductDescription: server.StringToNullString(product.ProductDescription),
 		CurrentPrice:       product.CurrentPrice,
 		OnHand:             int32(product.OnHand),
 		CreatedBy:          requestUserID,
@@ -83,6 +87,7 @@ func (cfg *HandlerSiteConfig) AddProduct(w http.ResponseWriter, r *http.Request)
 	insertProduct, err := cfg.DbQueries.AddProduct(r.Context(), addProduct)
 
 	if err != nil {
+		log.Print("error insert")
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
 		return
 	}
@@ -90,6 +95,7 @@ func (cfg *HandlerSiteConfig) AddProduct(w http.ResponseWriter, r *http.Request)
 	affected, _ := insertProduct.RowsAffected()
 
 	if affected == 0 {
+		log.Print("error no rows")
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
 		return
 	}

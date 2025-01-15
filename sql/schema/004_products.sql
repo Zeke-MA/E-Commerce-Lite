@@ -11,7 +11,6 @@ CREATE TABLE products (
     updated_at     TIMESTAMP DEFAULT NOW(), 
     created_by UUID NOT NULL,
     modified_by UUID
-
 );
 
 -- +goose Down

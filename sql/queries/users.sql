@@ -17,4 +17,4 @@ WHERE username = $1;
 
 -- name: IsAdmin :one
 SELECT id, Is_Admin from users
-WHERE username = $1;
+WHERE id = $1;

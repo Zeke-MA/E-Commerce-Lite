@@ -1,6 +1,7 @@
 package server
 
 import (
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -31,4 +32,11 @@ func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	}
 	w.WriteHeader(code)
 	w.Write(dat)
+}
+
+func StringToNullString(s *string) sql.NullString {
+	if s == nil {
+		return sql.NullString{String: "", Valid: false}
+	}
+	return sql.NullString{String: *s, Valid: true}
 }

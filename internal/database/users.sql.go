@@ -80,7 +80,7 @@ func (q *Queries) GetUser(ctx context.Context, username string) (User, error) {
 
 const isAdmin = `-- name: IsAdmin :one
 SELECT id, Is_Admin from users
-WHERE username = $1
+WHERE id = $1
 `
 
 type IsAdminRow struct {
@@ -88,8 +88,8 @@ type IsAdminRow struct {
 	IsAdmin bool      `json:"is_admin"`
 }
 
-func (q *Queries) IsAdmin(ctx context.Context, username string) (IsAdminRow, error) {
-	row := q.db.QueryRowContext(ctx, isAdmin, username)
+func (q *Queries) IsAdmin(ctx context.Context, id uuid.UUID) (IsAdminRow, error) {
+	row := q.db.QueryRowContext(ctx, isAdmin, id)
 	var i IsAdminRow
 	err := row.Scan(&i.ID, &i.IsAdmin)
 	return i, err

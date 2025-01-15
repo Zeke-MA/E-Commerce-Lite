@@ -45,6 +45,7 @@ func main() {
 	mux.HandleFunc("POST /api/login", handlerConfig.LoginUserHandler)
 	mux.HandleFunc("POST /api/refresh", handlerConfig.RefreshAccessToken)
 	mux.HandleFunc("POST /api/revoke", handlerConfig.RevokeRefreshToken)
+	mux.HandleFunc("POST /admin/products/add", handlerConfig.AddProduct)
 	mux.Handle("/app/", http.StripPrefix("/app", http.FileServer(http.Dir("."))))
 
 	server := http.Server{

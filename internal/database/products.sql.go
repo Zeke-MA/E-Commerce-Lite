@@ -13,14 +13,15 @@ import (
 )
 
 const addProduct = `-- name: AddProduct :execresult
-INSERT INTO products (product_id, product_name, product_description, current_price, on_hand, created_by)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO products (product_id, product_name, upc_id, product_description, current_price, on_hand, created_by)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING id, product_id, product_name, upc_id, product_description, current_price, on_hand, created_at, updated_at, created_by, modified_by
 `
 
 type AddProductParams struct {
 	ProductID          string         `json:"product_id"`
 	ProductName        string         `json:"product_name"`
+	UpcID              string         `json:"upc_id"`
 	ProductDescription sql.NullString `json:"product_description"`
 	CurrentPrice       string         `json:"current_price"`
 	OnHand             int32          `json:"on_hand"`
@@ -31,6 +32,7 @@ func (q *Queries) AddProduct(ctx context.Context, arg AddProductParams) (sql.Res
 	return q.db.ExecContext(ctx, addProduct,
 		arg.ProductID,
 		arg.ProductName,
+		arg.UpcID,
 		arg.ProductDescription,
 		arg.CurrentPrice,
 		arg.OnHand,
