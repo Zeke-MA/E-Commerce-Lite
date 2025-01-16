@@ -9,7 +9,7 @@ import (
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/utils"
 )
 
-func (cfg *MiddlewareSiteConfig) checkUserValidated(next http.Handler) http.Handler {
+func (cfg *MiddlewareSiteConfig) CheckUserValidated(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		bearerToken, err := auth.GetBearerToken(r.Header)

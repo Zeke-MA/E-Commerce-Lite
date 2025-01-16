@@ -44,11 +44,16 @@ func main() {
 
 	r := mux.NewRouter()
 
+	adminRouter := r.PathPrefix("/admin").Subrouter()
+	adminRouter.Use(middlewareConfig.CheckUserValidated)
+
+	adminRouter.HandleFunc("/admin/products/add", handlerConfig.AddProduct).Methods("POST")
+
 	r.HandleFunc("/api/create_user", handlerConfig.CreateUserHandler).Methods("POST")
 	r.HandleFunc("/api/login", handlerConfig.LoginUserHandler).Methods("POST")
 	r.HandleFunc("/api/refresh", handlerConfig.RefreshAccessToken).Methods("POST")
 	r.HandleFunc("/api/revoke", handlerConfig.RevokeRefreshToken).Methods("POST")
-	r.HandleFunc("/admin/products/add", handlerConfig.AddProduct).Methods("POST")
+
 	r.HandleFunc("/admin/products/remove/{product_id}", handlerConfig.RemoveProduct).Methods("POST")
 	r.Handle("/app/", http.StripPrefix("/app", http.FileServer(http.Dir("."))))
 

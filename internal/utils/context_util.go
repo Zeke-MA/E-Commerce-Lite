@@ -16,8 +16,14 @@ func SetContextUserID(ctx context.Context, userID uuid.UUID) context.Context {
 	return context.WithValue(ctx, userIDKey, userID)
 }
 
-func GetContextUserID(ctx context.Context) (string, bool) {
-	v := ctx.Value(userIDKey)
-	userID, ok := v.(string)
+func GetContextUserID(ctx context.Context) (uuid.UUID, bool) {
+	val := ctx.Value(userIDKey)
+
+	if val == nil {
+		return uuid.UUID{}, false
+	}
+
+	userID, ok := val.(uuid.UUID)
+
 	return userID, ok
 }

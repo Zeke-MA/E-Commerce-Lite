@@ -9,6 +9,7 @@ import (
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/auth"
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/database"
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/server"
+	"github.com/Zeke-MA/E-Commerce-Lite/internal/utils"
 	"github.com/google/uuid"
 )
 
@@ -37,17 +38,10 @@ func (cfg *HandlerSiteConfig) isUserAdmin(context context.Context, userId uuid.U
 }
 
 func (cfg *HandlerSiteConfig) AddProduct(w http.ResponseWriter, r *http.Request) {
-	bearerToken, err := auth.GetBearerToken(r.Header)
+	requestUserID, ok := utils.GetContextUserID(r.Context())
 
-	if err != nil {
-		server.RespondWithError(w, http.StatusUnauthorized, string(server.MsgUnauthorized), err)
-		return
-	}
-
-	requestUserID, err := auth.ValidateJWT(bearerToken, cfg.JWTSecret)
-
-	if err != nil {
-		server.RespondWithError(w, http.StatusUnauthorized, string(server.MsgUnauthorized), err)
+	if !ok {
+		server.RespondWithError(w, http.StatusNotFound, string(server.MsgNotFound), nil)
 		return
 	}
 
