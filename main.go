@@ -50,11 +50,11 @@ func main() {
 	r.Use(middlewareConfig.LogIncomingRequest)
 
 	adminRouter := r.PathPrefix("/admin").Subrouter()
-	adminRouter.Use(middlewareConfig.LogIncomingRequest)
+
 	adminRouter.Use(middlewareConfig.CheckUserValidated)
 
-	adminRouter.HandleFunc("/admin/products/add", handlerConfig.AddProduct).Methods("POST")
-	adminRouter.HandleFunc("/admin/products/remove/{product_id}", handlerConfig.RemoveProduct).Methods("POST")
+	adminRouter.HandleFunc("/products/add", handlerConfig.AddProduct).Methods("POST")
+	adminRouter.HandleFunc("/products/remove/{product_id}", handlerConfig.RemoveProduct).Methods("POST")
 
 	r.HandleFunc("/api/create_user", handlerConfig.CreateUserHandler).Methods("POST")
 	r.HandleFunc("/api/login", handlerConfig.LoginUserHandler).Methods("POST")
