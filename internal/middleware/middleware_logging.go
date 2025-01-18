@@ -14,8 +14,8 @@ import (
 func (cfg *MiddlewareSiteConfig) LogIncomingRequest(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var i interface{}
-
-		req, err := httputil.DumpRequest(r, false)
+		// Acknowledging token is in header logging. Future todo - extract without httputil
+		dumpReq, err := httputil.DumpRequest(r, false)
 
 		if err != nil {
 			log.Println(err)
@@ -47,14 +47,16 @@ func (cfg *MiddlewareSiteConfig) LogIncomingRequest(next http.Handler) http.Hand
 		delete(obj, "access_token")
 		delete(obj, "refresh_token")
 
-		jsonBytes, err := json.Marshal(obj)
+		requestBody, err := json.Marshal(obj)
 
 		if err != nil {
 			log.Printf("Error marshalling map: %v \n", err)
 		}
 
-		cfg.Logger.Info("Requestor Details", slog.String("details", string(req)))
-		cfg.Logger.Info("Request body", slog.String("request body", string(jsonBytes)))
+		log.Printf("This is the object: %v", obj)
+
+		cfg.Logger.Info("Requestor Details", slog.String("details", string(dumpReq)))
+		cfg.Logger.Info("Request body", slog.String("request body", string(requestBody)))
 
 		next.ServeHTTP(w, r)
 	})
