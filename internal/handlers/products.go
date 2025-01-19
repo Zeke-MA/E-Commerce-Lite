@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -10,7 +9,6 @@ import (
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/database"
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/server"
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/utils"
-	"github.com/google/uuid"
 )
 
 type product struct {
@@ -22,22 +20,7 @@ type product struct {
 	OnHand             int     `json:"on_hand"`
 }
 
-func (cfg *HandlerSiteConfig) isUserAdmin(context context.Context, userId uuid.UUID) (bool, error) {
-	adminCheck, err := cfg.DbQueries.IsAdmin(context, userId)
-
-	if err != nil {
-		return false, err
-	}
-
-	if !adminCheck.IsAdmin {
-		return false, nil
-	}
-
-	return true, nil
-
-}
-
-func (cfg *HandlerSiteConfig) AddProduct(w http.ResponseWriter, r *http.Request) {
+func (cfg *HandlerSiteConfig) AdminAddProduct(w http.ResponseWriter, r *http.Request) {
 	requestUserID, ok := utils.GetContextUserID(r.Context())
 
 	if !ok {
@@ -45,7 +28,7 @@ func (cfg *HandlerSiteConfig) AddProduct(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	authorized, err := cfg.isUserAdmin(r.Context(), requestUserID)
+	authorized, err := cfg.IsUserAdmin(r.Context(), requestUserID)
 
 	if err != nil {
 		log.Print(requestUserID)
@@ -93,7 +76,7 @@ func (cfg *HandlerSiteConfig) AddProduct(w http.ResponseWriter, r *http.Request)
 	server.RespondWithJSON(w, http.StatusOK, addProduct)
 }
 
-func (cfg *HandlerSiteConfig) RemoveProduct(w http.ResponseWriter, r *http.Request) {
+func (cfg *HandlerSiteConfig) AdminRemoveProduct(w http.ResponseWriter, r *http.Request) {
 	productID := r.PathValue("product_id")
 
 	if productID == "" {
@@ -114,7 +97,7 @@ func (cfg *HandlerSiteConfig) RemoveProduct(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	authorized, err := cfg.isUserAdmin(r.Context(), requestUserID)
+	authorized, err := cfg.IsUserAdmin(r.Context(), requestUserID)
 
 	if err != nil {
 		log.Print(requestUserID)

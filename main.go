@@ -53,8 +53,8 @@ func main() {
 
 	adminRouter.Use(middlewareConfig.CheckUserValidated)
 
-	adminRouter.HandleFunc("/products/add", handlerConfig.AddProduct).Methods("POST")
-	adminRouter.HandleFunc("/products/remove/{product_id}", handlerConfig.RemoveProduct).Methods("POST")
+	adminRouter.HandleFunc("/products/add", handlerConfig.AdminAddProduct).Methods("POST")
+	adminRouter.HandleFunc("/products/remove/{product_id}", handlerConfig.AdminRemoveProduct).Methods("POST")
 
 	r.HandleFunc("/api/create_user", handlerConfig.CreateUserHandler).Methods("POST")
 	r.HandleFunc("/api/login", handlerConfig.LoginUserHandler).Methods("POST")
