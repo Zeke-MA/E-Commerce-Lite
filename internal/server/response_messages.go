@@ -8,4 +8,5 @@ const (
 	MsgConflict      HttpResponseMessages = "The resource already exists"
 	MsgNotFound      HttpResponseMessages = "Not Found"
 	MsgUnauthorized  HttpResponseMessages = "Unauthorized Request"
+	MsgBadRequest    HttpResponseMessages = "Bad Request"
 )

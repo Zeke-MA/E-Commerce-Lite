@@ -9,6 +9,8 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httputil"
+
+	"github.com/Zeke-MA/E-Commerce-Lite/internal/server"
 )
 
 func (cfg *MiddlewareSiteConfig) LogIncomingRequest(next http.Handler) http.Handler {
@@ -25,7 +27,7 @@ func (cfg *MiddlewareSiteConfig) LogIncomingRequest(next http.Handler) http.Hand
 
 		if err != nil {
 			cfg.Logger.Error("Reading Response Body", slog.String("error", fmt.Sprintf("%v", err)))
-			next.ServeHTTP(w, r)
+			server.RespondWithError(w, http.StatusBadRequest, string(server.MsgBadRequest), err)
 			return
 		}
 
@@ -35,12 +37,16 @@ func (cfg *MiddlewareSiteConfig) LogIncomingRequest(next http.Handler) http.Hand
 
 		if err != nil {
 			cfg.Logger.Error("Parsing Response Body", slog.String("error", fmt.Sprintf("%v", err)))
+			server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+			return
 		}
 
 		obj, ok := i.(map[string]interface{})
 
 		if !ok {
 			cfg.Logger.Error("Wrong Request Format", slog.String("error", fmt.Sprintf("%v", err)))
+			server.RespondWithError(w, http.StatusBadRequest, string(server.MsgBadRequest), err)
+			return
 		}
 
 		delete(obj, "password")
@@ -51,9 +57,9 @@ func (cfg *MiddlewareSiteConfig) LogIncomingRequest(next http.Handler) http.Hand
 
 		if err != nil {
 			log.Printf("Error marshalling map: %v \n", err)
+			server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+			return
 		}
-
-		log.Printf("This is the object: %v", obj)
 
 		cfg.Logger.Info("Requestor Details", slog.String("details", string(dumpReq)))
 		cfg.Logger.Info("Request body", slog.String("request body", string(requestBody)))
