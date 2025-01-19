@@ -9,6 +9,7 @@ import (
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/database"
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/server"
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/utils"
+	"github.com/gorilla/mux"
 )
 
 type product struct {
@@ -77,8 +78,9 @@ func (cfg *HandlerSiteConfig) AdminAddProduct(w http.ResponseWriter, r *http.Req
 }
 
 func (cfg *HandlerSiteConfig) AdminRemoveProduct(w http.ResponseWriter, r *http.Request) {
-	productID := r.PathValue("product_id")
+	productID := mux.Vars(r)["product_id"]
 
+	log.Printf("Received product ID: '%s'", productID)
 	if productID == "" {
 		server.RespondWithError(w, http.StatusNotFound, string(server.MsgNotFound), nil)
 	}
@@ -98,6 +100,7 @@ func (cfg *HandlerSiteConfig) AdminRemoveProduct(w http.ResponseWriter, r *http.
 	}
 
 	authorized, err := cfg.IsUserAdmin(r.Context(), requestUserID)
+	log.Printf("IS admin check %v", authorized)
 
 	if err != nil {
 		log.Print(requestUserID)
@@ -110,6 +113,7 @@ func (cfg *HandlerSiteConfig) AdminRemoveProduct(w http.ResponseWriter, r *http.
 	}
 
 	removedProduct, err := cfg.DbQueries.RemoveProduct(r.Context(), productID)
+	log.Printf("Executing query: DELETE FROM products WHERE product_id = '%s'", productID)
 
 	if err != nil {
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)

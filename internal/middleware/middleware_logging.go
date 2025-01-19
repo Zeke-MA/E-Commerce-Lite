@@ -20,7 +20,9 @@ func (cfg *MiddlewareSiteConfig) LogIncomingRequest(next http.Handler) http.Hand
 		dumpReq, err := httputil.DumpRequest(r, false)
 
 		if err != nil {
-			log.Println(err)
+			cfg.Logger.Error("Reading Response", slog.String("error", fmt.Sprintf("%v", err)))
+			server.RespondWithError(w, http.StatusBadRequest, string(server.MsgBadRequest), err)
+			return
 		}
 
 		bodyBytes, err := io.ReadAll(r.Body)
