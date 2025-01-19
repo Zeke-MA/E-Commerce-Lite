@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
@@ -40,21 +41,26 @@ func main() {
 	}
 
 	handlerConfig := &handlers.HandlerSiteConfig{SiteConfig: siteConfig}
-	middlewareConfig := &middleware.MiddlewareSiteConfig{SiteConfig: siteConfig}
+	middlewareConfig := &middleware.MiddlewareSiteConfig{
+		SiteConfig: siteConfig,
+		Logger:     slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})),
+	}
 
 	r := mux.NewRouter()
+	r.Use(middlewareConfig.LogIncomingRequest)
 
 	adminRouter := r.PathPrefix("/admin").Subrouter()
+
 	adminRouter.Use(middlewareConfig.CheckUserValidated)
 
-	adminRouter.HandleFunc("/admin/products/add", handlerConfig.AddProduct).Methods("POST")
+	adminRouter.HandleFunc("/products/add", handlerConfig.AddProduct).Methods("POST")
+	adminRouter.HandleFunc("/products/remove/{product_id}", handlerConfig.RemoveProduct).Methods("POST")
 
 	r.HandleFunc("/api/create_user", handlerConfig.CreateUserHandler).Methods("POST")
 	r.HandleFunc("/api/login", handlerConfig.LoginUserHandler).Methods("POST")
 	r.HandleFunc("/api/refresh", handlerConfig.RefreshAccessToken).Methods("POST")
 	r.HandleFunc("/api/revoke", handlerConfig.RevokeRefreshToken).Methods("POST")
 
-	r.HandleFunc("/admin/products/remove/{product_id}", handlerConfig.RemoveProduct).Methods("POST")
 	r.Handle("/app/", http.StripPrefix("/app", http.FileServer(http.Dir("."))))
 
 	server := http.Server{

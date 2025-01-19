@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/auth"
@@ -26,7 +25,7 @@ func (cfg *MiddlewareSiteConfig) CheckUserValidated(next http.Handler) http.Hand
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), utils.SetContextUserID(r.Context(), requestUserID), requestUserID)
+		ctx := utils.SetContextUserID(r.Context(), requestUserID)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
