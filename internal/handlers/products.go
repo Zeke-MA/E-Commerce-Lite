@@ -1,11 +1,12 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 
-	"github.com/Zeke-MA/E-Commerce-Lite/internal/auth"
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/database"
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/server"
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/utils"
@@ -22,6 +23,14 @@ type product struct {
 }
 
 func (cfg *HandlerSiteConfig) AdminAddProduct(w http.ResponseWriter, r *http.Request) {
+	type addProduct struct {
+		ProductName        string  `json:"product_name"`
+		UpcId              string  `json:"upc_id"`
+		ProductDescription *string `json:"product_desc"`
+		CurrentPrice       string  `json:"price"`
+		OnHand             int     `json:"on_hand"`
+	}
+
 	requestUserID, ok := utils.GetContextUserID(r.Context())
 
 	if !ok {
@@ -29,10 +38,17 @@ func (cfg *HandlerSiteConfig) AdminAddProduct(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	productID := mux.Vars(r)["product_id"]
+
+	if productID == "" {
+		server.RespondWithError(w, http.StatusNotFound, string(server.MsgNotFound), nil)
+		return
+	}
+
 	authorized, err := cfg.IsUserAdmin(r.Context(), requestUserID)
 
 	if err != nil {
-		log.Print(requestUserID)
+		log.Print("failed admin check")
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
 		return
 	}
@@ -41,8 +57,21 @@ func (cfg *HandlerSiteConfig) AdminAddProduct(w http.ResponseWriter, r *http.Req
 		server.RespondWithError(w, http.StatusUnauthorized, string(server.MsgUnauthorized), err)
 	}
 
+	dbFoundProduct, err := cfg.DbQueries.FindProduct(r.Context(), productID)
+
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		log.Print("check prod")
+		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
+	}
+
+	if dbFoundProduct.ProductID == productID {
+		server.RespondWithError(w, http.StatusConflict, string(server.MsgConflict), err)
+		return
+	}
+
 	decoder := json.NewDecoder(r.Body)
-	product := product{}
+	product := addProduct{}
 	err = decoder.Decode(&product)
 
 	if err != nil {
@@ -50,8 +79,8 @@ func (cfg *HandlerSiteConfig) AdminAddProduct(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	addProduct := database.AddProductParams{
-		ProductID:          product.ProductId,
+	dbProduct := database.AddProductParams{
+		ProductID:          productID,
 		ProductName:        product.ProductName,
 		UpcID:              product.UpcId,
 		ProductDescription: server.StringToNullString(product.ProductDescription),
@@ -60,9 +89,10 @@ func (cfg *HandlerSiteConfig) AdminAddProduct(w http.ResponseWriter, r *http.Req
 		CreatedBy:          requestUserID,
 	}
 
-	insertProduct, err := cfg.DbQueries.AddProduct(r.Context(), addProduct)
+	insertProduct, err := cfg.DbQueries.AddProduct(r.Context(), dbProduct)
 
 	if err != nil {
+		log.Print("check add prod")
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
 		return
 	}
@@ -74,46 +104,48 @@ func (cfg *HandlerSiteConfig) AdminAddProduct(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	server.RespondWithJSON(w, http.StatusOK, addProduct)
+	server.RespondWithJSON(w, http.StatusOK, dbProduct)
 }
 
 func (cfg *HandlerSiteConfig) AdminRemoveProduct(w http.ResponseWriter, r *http.Request) {
 	productID := mux.Vars(r)["product_id"]
 
-	log.Printf("Received product ID: '%s'", productID)
 	if productID == "" {
 		server.RespondWithError(w, http.StatusNotFound, string(server.MsgNotFound), nil)
-	}
-
-	bearerToken, err := auth.GetBearerToken(r.Header)
-
-	if err != nil {
-		server.RespondWithError(w, http.StatusUnauthorized, string(server.MsgUnauthorized), err)
 		return
 	}
 
-	requestUserID, err := auth.ValidateJWT(bearerToken, cfg.JWTSecret)
+	requestUserID, ok := utils.GetContextUserID(r.Context())
 
-	if err != nil {
-		server.RespondWithError(w, http.StatusUnauthorized, string(server.MsgUnauthorized), err)
+	if !ok {
+		server.RespondWithError(w, http.StatusNotFound, string(server.MsgNotFound), nil)
 		return
 	}
 
 	authorized, err := cfg.IsUserAdmin(r.Context(), requestUserID)
-	log.Printf("IS admin check %v", authorized)
 
 	if err != nil {
-		log.Print(requestUserID)
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
 		return
 	}
 
 	if !authorized {
 		server.RespondWithError(w, http.StatusUnauthorized, string(server.MsgUnauthorized), err)
+		return
+	}
+
+	_, err = cfg.DbQueries.FindProduct(r.Context(), productID)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			server.RespondWithError(w, http.StatusNotFound, string(server.MsgNotFound), err)
+			return
+		}
+		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
 	}
 
 	removedProduct, err := cfg.DbQueries.RemoveProduct(r.Context(), productID)
-	log.Printf("Executing query: DELETE FROM products WHERE product_id = '%s'", productID)
 
 	if err != nil {
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
@@ -130,4 +162,80 @@ func (cfg *HandlerSiteConfig) AdminRemoveProduct(w http.ResponseWriter, r *http.
 	}
 
 	server.RespondWithJSON(w, http.StatusOK, response)
+}
+
+func (cfg *HandlerSiteConfig) AdminChangePrice(w http.ResponseWriter, r *http.Request) {
+
+	type priceChange struct {
+		NewPrice string `json:"price"`
+	}
+
+	productID := mux.Vars(r)["product_id"]
+
+	if productID == "" {
+		server.RespondWithError(w, http.StatusNotFound, string(server.MsgNotFound), nil)
+		return
+	}
+
+	requestUserID, ok := utils.GetContextUserID(r.Context())
+
+	if !ok {
+		server.RespondWithError(w, http.StatusNotFound, string(server.MsgNotFound), nil)
+		return
+	}
+
+	authorized, err := cfg.IsUserAdmin(r.Context(), requestUserID)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
+	}
+
+	if !authorized {
+		server.RespondWithError(w, http.StatusUnauthorized, string(server.MsgUnauthorized), err)
+		return
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	productPriceChange := priceChange{}
+	err = decoder.Decode(&productPriceChange)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
+	}
+
+	dbFoundProduct, err := cfg.DbQueries.FindProduct(r.Context(), productID)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
+	}
+
+	if dbFoundProduct.CurrentPrice == productPriceChange.NewPrice {
+		server.RespondWithJSON(w, http.StatusNotModified, nil)
+	}
+
+	priceUpdate := database.UpdateProductPriceParams{
+		CurrentPrice: productPriceChange.NewPrice,
+		ProductID:    productID,
+	}
+
+	dbPriceUpdate, err := cfg.DbQueries.UpdateProductPrice(r.Context(), priceUpdate)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
+	}
+
+	responseUpdate := product{
+		ProductId:          productID,
+		ProductName:        dbPriceUpdate.ProductName,
+		UpcId:              dbPriceUpdate.UpcID,
+		ProductDescription: &dbPriceUpdate.ProductDescription.String,
+		CurrentPrice:       productPriceChange.NewPrice,
+		OnHand:             int(dbPriceUpdate.OnHand),
+	}
+
+	server.RespondWithJSON(w, http.StatusOK, responseUpdate)
 }

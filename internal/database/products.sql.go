@@ -40,6 +40,34 @@ func (q *Queries) AddProduct(ctx context.Context, arg AddProductParams) (sql.Res
 	)
 }
 
+const findProduct = `-- name: FindProduct :one
+SELECT product_id, product_name, upc_id, product_description, current_price, on_hand FROM products
+WHERE product_id = $1
+`
+
+type FindProductRow struct {
+	ProductID          string         `json:"product_id"`
+	ProductName        string         `json:"product_name"`
+	UpcID              string         `json:"upc_id"`
+	ProductDescription sql.NullString `json:"product_description"`
+	CurrentPrice       string         `json:"current_price"`
+	OnHand             int32          `json:"on_hand"`
+}
+
+func (q *Queries) FindProduct(ctx context.Context, productID string) (FindProductRow, error) {
+	row := q.db.QueryRowContext(ctx, findProduct, productID)
+	var i FindProductRow
+	err := row.Scan(
+		&i.ProductID,
+		&i.ProductName,
+		&i.UpcID,
+		&i.ProductDescription,
+		&i.CurrentPrice,
+		&i.OnHand,
+	)
+	return i, err
+}
+
 const removeProduct = `-- name: RemoveProduct :one
 DELETE FROM products
 WHERE product_id = $1
@@ -48,6 +76,37 @@ RETURNING id, product_id, product_name, upc_id, product_description, current_pri
 
 func (q *Queries) RemoveProduct(ctx context.Context, productID string) (Product, error) {
 	row := q.db.QueryRowContext(ctx, removeProduct, productID)
+	var i Product
+	err := row.Scan(
+		&i.ID,
+		&i.ProductID,
+		&i.ProductName,
+		&i.UpcID,
+		&i.ProductDescription,
+		&i.CurrentPrice,
+		&i.OnHand,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CreatedBy,
+		&i.ModifiedBy,
+	)
+	return i, err
+}
+
+const updateProductPrice = `-- name: UpdateProductPrice :one
+UPDATE products
+SET current_price = $1
+WHERE product_id = $2
+RETURNING id, product_id, product_name, upc_id, product_description, current_price, on_hand, created_at, updated_at, created_by, modified_by
+`
+
+type UpdateProductPriceParams struct {
+	CurrentPrice string `json:"current_price"`
+	ProductID    string `json:"product_id"`
+}
+
+func (q *Queries) UpdateProductPrice(ctx context.Context, arg UpdateProductPriceParams) (Product, error) {
+	row := q.db.QueryRowContext(ctx, updateProductPrice, arg.CurrentPrice, arg.ProductID)
 	var i Product
 	err := row.Scan(
 		&i.ID,

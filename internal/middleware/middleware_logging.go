@@ -27,6 +27,12 @@ func (cfg *MiddlewareSiteConfig) LogIncomingRequest(next http.Handler) http.Hand
 
 		bodyBytes, err := io.ReadAll(r.Body)
 
+		if len(bodyBytes) == 0 {
+			cfg.Logger.Info("Request has no body", slog.String("details", string(dumpReq)))
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		if err != nil {
 			cfg.Logger.Error("Reading Response Body", slog.String("error", fmt.Sprintf("%v", err)))
 			server.RespondWithError(w, http.StatusBadRequest, string(server.MsgBadRequest), err)
