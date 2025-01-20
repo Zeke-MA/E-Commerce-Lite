@@ -239,3 +239,162 @@ func (cfg *HandlerSiteConfig) AdminChangePrice(w http.ResponseWriter, r *http.Re
 
 	server.RespondWithJSON(w, http.StatusOK, responseUpdate)
 }
+
+func (cfg *HandlerSiteConfig) AdminAddQuantity(w http.ResponseWriter, r *http.Request) {
+	type addQuantity struct {
+		Quantity int `json:"add_quantity"`
+	}
+	productID := mux.Vars(r)["product_id"]
+
+	if productID == "" {
+		server.RespondWithError(w, http.StatusNotFound, string(server.MsgNotFound), nil)
+		return
+	}
+
+	requestUserID, ok := utils.GetContextUserID(r.Context())
+
+	if !ok {
+		server.RespondWithError(w, http.StatusNotFound, string(server.MsgNotFound), nil)
+		return
+	}
+
+	authorized, err := cfg.IsUserAdmin(r.Context(), requestUserID)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
+	}
+
+	if !authorized {
+		server.RespondWithError(w, http.StatusUnauthorized, string(server.MsgUnauthorized), err)
+		return
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	productAddQuantity := addQuantity{}
+	err = decoder.Decode(&productAddQuantity)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
+	}
+
+	if productAddQuantity.Quantity < 1 {
+		server.RespondWithError(w, http.StatusBadRequest, string(server.MsgBadRequest), err)
+		return
+	}
+
+	_, err = cfg.DbQueries.FindProduct(r.Context(), productID)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			server.RespondWithError(w, http.StatusNotFound, string(server.MsgNotFound), err)
+			return
+		}
+		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
+	}
+
+	addQuantityParams := database.UpdateProductQuantityParams{
+		OnHand:    int32(productAddQuantity.Quantity),
+		ProductID: productID,
+	}
+
+	dbUpdateProductQty, err := cfg.DbQueries.UpdateProductQuantity(r.Context(), addQuantityParams)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
+	}
+
+	addQtyResponse := product{
+		ProductId:          productID,
+		ProductName:        dbUpdateProductQty.ProductName,
+		UpcId:              dbUpdateProductQty.UpcID,
+		ProductDescription: &dbUpdateProductQty.ProductDescription.String,
+		CurrentPrice:       dbUpdateProductQty.CurrentPrice,
+		OnHand:             int(dbUpdateProductQty.OnHand),
+	}
+
+	server.RespondWithJSON(w, http.StatusOK, addQtyResponse)
+
+}
+
+func (cfg *HandlerSiteConfig) AdminRemoveQuantity(w http.ResponseWriter, r *http.Request) {
+	type removeQuantity struct {
+		Quantity int `json:"add_quantity"`
+	}
+	productID := mux.Vars(r)["product_id"]
+
+	if productID == "" {
+		server.RespondWithError(w, http.StatusNotFound, string(server.MsgNotFound), nil)
+		return
+	}
+
+	requestUserID, ok := utils.GetContextUserID(r.Context())
+
+	if !ok {
+		server.RespondWithError(w, http.StatusNotFound, string(server.MsgNotFound), nil)
+		return
+	}
+
+	authorized, err := cfg.IsUserAdmin(r.Context(), requestUserID)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
+	}
+
+	if !authorized {
+		server.RespondWithError(w, http.StatusUnauthorized, string(server.MsgUnauthorized), err)
+		return
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	productRemoveQuantity := removeQuantity{}
+	err = decoder.Decode(&productRemoveQuantity)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
+	}
+
+	if productRemoveQuantity.Quantity < 1 {
+		server.RespondWithError(w, http.StatusBadRequest, string(server.MsgBadRequest), err)
+		return
+	}
+
+	_, err = cfg.DbQueries.FindProduct(r.Context(), productID)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			server.RespondWithError(w, http.StatusNotFound, string(server.MsgNotFound), err)
+			return
+		}
+		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
+	}
+
+	addQuantityParams := database.UpdateProductQuantityParams{
+		OnHand:    int32(productRemoveQuantity.Quantity) * -1,
+		ProductID: productID,
+	}
+
+	dbUpdateProductQty, err := cfg.DbQueries.UpdateProductQuantity(r.Context(), addQuantityParams)
+
+	if err != nil {
+		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
+	}
+
+	addQtyResponse := product{
+		ProductId:          productID,
+		ProductName:        dbUpdateProductQty.ProductName,
+		UpcId:              dbUpdateProductQty.UpcID,
+		ProductDescription: &dbUpdateProductQty.ProductDescription.String,
+		CurrentPrice:       dbUpdateProductQty.CurrentPrice,
+		OnHand:             int(dbUpdateProductQty.OnHand),
+	}
+
+	server.RespondWithJSON(w, http.StatusOK, addQtyResponse)
+}

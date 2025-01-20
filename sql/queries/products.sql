@@ -17,3 +17,9 @@ UPDATE products
 SET current_price = $1
 WHERE product_id = $2
 RETURNING *;
+
+-- name: UpdateProductQuantity :one
+UPDATE products
+SET on_hand = on_hand + $1
+WHERE product_id = $2
+RETURNING *;

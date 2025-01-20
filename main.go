@@ -56,6 +56,8 @@ func main() {
 	adminRouter.HandleFunc("/products/{product_id}/add", handlerConfig.AdminAddProduct).Methods("POST")
 	adminRouter.HandleFunc("/products/{product_id}/remove", handlerConfig.AdminRemoveProduct).Methods("DELETE")
 	adminRouter.HandleFunc("/products/{product_id}/price", handlerConfig.AdminChangePrice).Methods("PATCH")
+	adminRouter.HandleFunc("/products/{product_id}/quantity/add", handlerConfig.AdminAddQuantity).Methods("PATCH")
+	adminRouter.HandleFunc("/products/{product_id}/quantity/remove", handlerConfig.AdminRemoveQuantity).Methods("PATCH")
 
 	r.HandleFunc("/api/create_user", handlerConfig.CreateUserHandler).Methods("POST")
 	r.HandleFunc("/api/login", handlerConfig.LoginUserHandler).Methods("POST")
