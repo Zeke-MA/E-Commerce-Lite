@@ -322,7 +322,7 @@ func (cfg *HandlerSiteConfig) AdminAddQuantity(w http.ResponseWriter, r *http.Re
 
 func (cfg *HandlerSiteConfig) AdminRemoveQuantity(w http.ResponseWriter, r *http.Request) {
 	type removeQuantity struct {
-		Quantity int `json:"add_quantity"`
+		Quantity int `json:"remove_quantity"`
 	}
 	productID := mux.Vars(r)["product_id"]
 
@@ -364,7 +364,7 @@ func (cfg *HandlerSiteConfig) AdminRemoveQuantity(w http.ResponseWriter, r *http
 		return
 	}
 
-	_, err = cfg.DbQueries.FindProduct(r.Context(), productID)
+	findProduct, err := cfg.DbQueries.FindProduct(r.Context(), productID)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -372,6 +372,13 @@ func (cfg *HandlerSiteConfig) AdminRemoveQuantity(w http.ResponseWriter, r *http
 			return
 		}
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
+		return
+	}
+
+	// if the amount to remove is more than what is in the table send a bad request rather than taking it to 0.
+	// Might indicate issue with the data source reporting more on hand than actually available.
+	if productRemoveQuantity.Quantity > int(findProduct.OnHand) {
+		server.RespondWithError(w, http.StatusBadRequest, string(server.MsgBadRequest), err)
 		return
 	}
 
