@@ -49,6 +49,11 @@ func main() {
 	r := mux.NewRouter()
 	r.Use(middlewareConfig.LogIncomingRequest)
 
+	r.HandleFunc("/api/create_user", handlerConfig.CreateUserHandler).Methods("POST")
+	r.HandleFunc("/api/login", handlerConfig.LoginUserHandler).Methods("POST")
+	r.HandleFunc("/api/refresh", handlerConfig.RefreshAccessToken).Methods("POST")
+	r.HandleFunc("/api/revoke", handlerConfig.RevokeRefreshToken).Methods("POST")
+
 	adminRouter := r.PathPrefix("/admin").Subrouter()
 
 	adminRouter.Use(middlewareConfig.CheckUserValidated)
@@ -59,10 +64,11 @@ func main() {
 	adminRouter.HandleFunc("/products/{product_id}/quantity/add", handlerConfig.AdminAddQuantity).Methods("PATCH")
 	adminRouter.HandleFunc("/products/{product_id}/quantity/remove", handlerConfig.AdminRemoveQuantity).Methods("PATCH")
 
-	r.HandleFunc("/api/create_user", handlerConfig.CreateUserHandler).Methods("POST")
-	r.HandleFunc("/api/login", handlerConfig.LoginUserHandler).Methods("POST")
-	r.HandleFunc("/api/refresh", handlerConfig.RefreshAccessToken).Methods("POST")
-	r.HandleFunc("/api/revoke", handlerConfig.RevokeRefreshToken).Methods("POST")
+	userRouter := r.PathPrefix("/user").Subrouter()
+
+	userRouter.Use(middlewareConfig.CheckUserValidated)
+
+	userRouter.HandleFunc("/cart/{product_id}/add", nil).Methods("POST")
 
 	r.Handle("/app/", http.StripPrefix("/app", http.FileServer(http.Dir("."))))
 
