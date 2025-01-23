@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/Zeke-MA/E-Commerce-Lite/internal/admindb"
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/database"
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/server"
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/utils"
@@ -45,7 +46,7 @@ func (cfg *HandlerSiteConfig) AdminAddProduct(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	authorized, err := cfg.IsUserAdmin(r.Context(), requestUserID)
+	authorized, err := admindb.IsUserAdmin(requestUserID, r.Context(), cfg.SiteConfig)
 
 	if err != nil {
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
@@ -121,7 +122,7 @@ func (cfg *HandlerSiteConfig) AdminRemoveProduct(w http.ResponseWriter, r *http.
 		return
 	}
 
-	authorized, err := cfg.IsUserAdmin(r.Context(), requestUserID)
+	authorized, err := admindb.IsUserAdmin(requestUserID, r.Context(), cfg.SiteConfig)
 
 	if err != nil {
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
@@ -183,7 +184,7 @@ func (cfg *HandlerSiteConfig) AdminChangePrice(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	authorized, err := cfg.IsUserAdmin(r.Context(), requestUserID)
+	authorized, err := admindb.IsUserAdmin(requestUserID, r.Context(), cfg.SiteConfig)
 
 	if err != nil {
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
@@ -257,7 +258,7 @@ func (cfg *HandlerSiteConfig) AdminAddQuantity(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	authorized, err := cfg.IsUserAdmin(r.Context(), requestUserID)
+	authorized, err := admindb.IsUserAdmin(requestUserID, r.Context(), cfg.SiteConfig)
 
 	if err != nil {
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
@@ -337,7 +338,7 @@ func (cfg *HandlerSiteConfig) AdminRemoveQuantity(w http.ResponseWriter, r *http
 		return
 	}
 
-	authorized, err := cfg.IsUserAdmin(r.Context(), requestUserID)
+	authorized, err := admindb.IsUserAdmin(requestUserID, r.Context(), cfg.SiteConfig)
 
 	if err != nil {
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
