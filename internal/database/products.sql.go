@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
-const addProduct = `-- name: AddProduct :execresult
+const addProduct = `-- name: AddProduct :one
 INSERT INTO products (product_id, product_name, upc_id, product_description, current_price, on_hand, created_by)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING id, product_id, product_name, upc_id, product_description, current_price, on_hand, created_at, updated_at, created_by, modified_by
@@ -28,8 +28,8 @@ type AddProductParams struct {
 	CreatedBy          uuid.UUID      `json:"created_by"`
 }
 
-func (q *Queries) AddProduct(ctx context.Context, arg AddProductParams) (sql.Result, error) {
-	return q.db.ExecContext(ctx, addProduct,
+func (q *Queries) AddProduct(ctx context.Context, arg AddProductParams) (Product, error) {
+	row := q.db.QueryRowContext(ctx, addProduct,
 		arg.ProductID,
 		arg.ProductName,
 		arg.UpcID,
@@ -38,6 +38,21 @@ func (q *Queries) AddProduct(ctx context.Context, arg AddProductParams) (sql.Res
 		arg.OnHand,
 		arg.CreatedBy,
 	)
+	var i Product
+	err := row.Scan(
+		&i.ID,
+		&i.ProductID,
+		&i.ProductName,
+		&i.UpcID,
+		&i.ProductDescription,
+		&i.CurrentPrice,
+		&i.OnHand,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CreatedBy,
+		&i.ModifiedBy,
+	)
+	return i, err
 }
 
 const findProduct = `-- name: FindProduct :one

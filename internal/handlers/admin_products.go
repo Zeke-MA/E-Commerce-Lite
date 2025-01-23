@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/admindb"
@@ -57,19 +56,6 @@ func (cfg *HandlerSiteConfig) AdminAddProduct(w http.ResponseWriter, r *http.Req
 		server.RespondWithError(w, http.StatusUnauthorized, string(server.MsgUnauthorized), err)
 	}
 
-	dbFoundProduct, err := cfg.DbQueries.FindProduct(r.Context(), productID)
-
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		log.Print("check prod")
-		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
-		return
-	}
-
-	if dbFoundProduct.ProductID == productID {
-		server.RespondWithError(w, http.StatusConflict, string(server.MsgConflict), err)
-		return
-	}
-
 	decoder := json.NewDecoder(r.Body)
 	product := addProduct{}
 	err = decoder.Decode(&product)
@@ -79,32 +65,19 @@ func (cfg *HandlerSiteConfig) AdminAddProduct(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	dbProduct := database.AddProductParams{
-		ProductID:          productID,
-		ProductName:        product.ProductName,
-		UpcID:              product.UpcId,
-		ProductDescription: server.StringToNullString(product.ProductDescription),
-		CurrentPrice:       product.CurrentPrice,
-		OnHand:             int32(product.OnHand),
-		CreatedBy:          requestUserID,
-	}
-
-	insertProduct, err := cfg.DbQueries.AddProduct(r.Context(), dbProduct)
+	dbAddProductResult, err := admindb.AddProductToSite(productID, product.ProductName, product.UpcId, product.CurrentPrice,
+		server.StringToNullString(product.ProductDescription), int32(product.OnHand), requestUserID, r.Context(), cfg.SiteConfig)
 
 	if err != nil {
-		log.Print("check add prod")
+		if errors.Is(err, admindb.ErrProductAlreadyExists) {
+			server.RespondWithError(w, http.StatusConflict, string(server.MsgConflict), err)
+			return
+		}
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
 		return
 	}
 
-	affected, _ := insertProduct.RowsAffected()
-
-	if affected == 0 {
-		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
-		return
-	}
-
-	server.RespondWithJSON(w, http.StatusOK, dbProduct)
+	server.RespondWithJSON(w, http.StatusOK, dbAddProductResult)
 }
 
 func (cfg *HandlerSiteConfig) AdminRemoveProduct(w http.ResponseWriter, r *http.Request) {
