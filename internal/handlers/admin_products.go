@@ -54,6 +54,7 @@ func (cfg *HandlerSiteConfig) AdminAddProduct(w http.ResponseWriter, r *http.Req
 
 	if !authorized {
 		server.RespondWithError(w, http.StatusUnauthorized, string(server.MsgUnauthorized), err)
+		return
 	}
 
 	decoder := json.NewDecoder(r.Body)
