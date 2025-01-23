@@ -40,7 +40,11 @@ func main() {
 		JWTSecret:          os.Getenv("JWT_SECRET"),
 	}
 
-	handlerConfig := &handlers.HandlerSiteConfig{SiteConfig: siteConfig}
+	handlerConfig := &handlers.HandlerSiteConfig{
+		SiteConfig:  siteConfig,
+		ItemTimeout: time.Minute * 30,
+	}
+
 	middlewareConfig := &middleware.MiddlewareSiteConfig{
 		SiteConfig: siteConfig,
 		Logger:     slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})),
@@ -68,7 +72,7 @@ func main() {
 
 	userRouter.Use(middlewareConfig.CheckUserValidated)
 
-	userRouter.HandleFunc("/cart/{product_id}/add", nil).Methods("POST")
+	userRouter.HandleFunc("/cart/{product_id}/add", handlerConfig.UserAddItemToCart).Methods("POST")
 
 	r.Handle("/app/", http.StripPrefix("/app", http.FileServer(http.Dir("."))))
 

@@ -11,6 +11,24 @@ import (
 	"github.com/google/uuid"
 )
 
+type Cart struct {
+	ID        int32        `json:"id"`
+	UserID    uuid.UUID    `json:"user_id"`
+	CreatedAt sql.NullTime `json:"created_at"`
+	UpdatedAt sql.NullTime `json:"updated_at"`
+}
+
+type CartItem struct {
+	ID           int32        `json:"id"`
+	CartID       int32        `json:"cart_id"`
+	ProductID    int32        `json:"product_id"`
+	Quantity     int32        `json:"quantity"`
+	PricePerUnit string       `json:"price_per_unit"`
+	ItemTimeout  time.Time    `json:"item_timeout"`
+	CreatedAt    sql.NullTime `json:"created_at"`
+	UpdatedAt    sql.NullTime `json:"updated_at"`
+}
+
 type Product struct {
 	ID                 int32          `json:"id"`
 	ProductID          string         `json:"product_id"`

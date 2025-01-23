@@ -5,7 +5,7 @@ CREATE TABLE cart_item (
     product_id INT NOT NULL,
     quantity INT NOT NULL,
     price_per_unit NUMERIC(10,2) NOT NULL,
-    item_timeout TIMESTAMP,
+    item_timeout TIMESTAMP NOT NULL,
     created_at     TIMESTAMP DEFAULT NOW(),
     updated_at     TIMESTAMP DEFAULT NOW(), 
     FOREIGN KEY (cart_id) REFERENCES cart(id),
