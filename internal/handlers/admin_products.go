@@ -48,7 +48,6 @@ func (cfg *HandlerSiteConfig) AdminAddProduct(w http.ResponseWriter, r *http.Req
 	authorized, err := cfg.IsUserAdmin(r.Context(), requestUserID)
 
 	if err != nil {
-		log.Print("failed admin check")
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
 		return
 	}
