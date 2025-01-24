@@ -4,9 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 
+	"github.com/Zeke-MA/E-Commerce-Lite/internal/admindb"
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/database"
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/server"
 	"github.com/Zeke-MA/E-Commerce-Lite/internal/utils"
@@ -45,7 +45,7 @@ func (cfg *HandlerSiteConfig) AdminAddProduct(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	authorized, err := cfg.IsUserAdmin(r.Context(), requestUserID)
+	authorized, err := admindb.IsUserAdmin(requestUserID, r.Context(), cfg.SiteConfig)
 
 	if err != nil {
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
@@ -54,18 +54,6 @@ func (cfg *HandlerSiteConfig) AdminAddProduct(w http.ResponseWriter, r *http.Req
 
 	if !authorized {
 		server.RespondWithError(w, http.StatusUnauthorized, string(server.MsgUnauthorized), err)
-	}
-
-	dbFoundProduct, err := cfg.DbQueries.FindProduct(r.Context(), productID)
-
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		log.Print("check prod")
-		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
-		return
-	}
-
-	if dbFoundProduct.ProductID == productID {
-		server.RespondWithError(w, http.StatusConflict, string(server.MsgConflict), err)
 		return
 	}
 
@@ -78,32 +66,19 @@ func (cfg *HandlerSiteConfig) AdminAddProduct(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	dbProduct := database.AddProductParams{
-		ProductID:          productID,
-		ProductName:        product.ProductName,
-		UpcID:              product.UpcId,
-		ProductDescription: server.StringToNullString(product.ProductDescription),
-		CurrentPrice:       product.CurrentPrice,
-		OnHand:             int32(product.OnHand),
-		CreatedBy:          requestUserID,
-	}
-
-	insertProduct, err := cfg.DbQueries.AddProduct(r.Context(), dbProduct)
+	dbAddProductResult, err := admindb.AddProductToSite(productID, product.ProductName, product.UpcId, product.CurrentPrice,
+		server.StringToNullString(product.ProductDescription), int32(product.OnHand), requestUserID, r.Context(), cfg.SiteConfig)
 
 	if err != nil {
-		log.Print("check add prod")
+		if errors.Is(err, admindb.ErrProductAlreadyExists) {
+			server.RespondWithError(w, http.StatusConflict, string(server.MsgConflict), err)
+			return
+		}
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
 		return
 	}
 
-	affected, _ := insertProduct.RowsAffected()
-
-	if affected == 0 {
-		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
-		return
-	}
-
-	server.RespondWithJSON(w, http.StatusOK, dbProduct)
+	server.RespondWithJSON(w, http.StatusOK, dbAddProductResult)
 }
 
 func (cfg *HandlerSiteConfig) AdminRemoveProduct(w http.ResponseWriter, r *http.Request) {
@@ -121,7 +96,7 @@ func (cfg *HandlerSiteConfig) AdminRemoveProduct(w http.ResponseWriter, r *http.
 		return
 	}
 
-	authorized, err := cfg.IsUserAdmin(r.Context(), requestUserID)
+	authorized, err := admindb.IsUserAdmin(requestUserID, r.Context(), cfg.SiteConfig)
 
 	if err != nil {
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
@@ -133,10 +108,10 @@ func (cfg *HandlerSiteConfig) AdminRemoveProduct(w http.ResponseWriter, r *http.
 		return
 	}
 
-	_, err = cfg.DbQueries.FindProduct(r.Context(), productID)
+	removedProduct, err := admindb.RemoveProductFromSite(productID, r.Context(), cfg.SiteConfig)
 
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, admindb.ErrProductNotFound) {
 			server.RespondWithError(w, http.StatusNotFound, string(server.MsgNotFound), err)
 			return
 		}
@@ -144,23 +119,7 @@ func (cfg *HandlerSiteConfig) AdminRemoveProduct(w http.ResponseWriter, r *http.
 		return
 	}
 
-	removedProduct, err := cfg.DbQueries.RemoveProduct(r.Context(), productID)
-
-	if err != nil {
-		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
-		return
-	}
-
-	response := product{
-		ProductId:          removedProduct.ProductID,
-		ProductName:        removedProduct.ProductName,
-		UpcId:              removedProduct.UpcID,
-		ProductDescription: &removedProduct.ProductDescription.String,
-		CurrentPrice:       removedProduct.CurrentPrice,
-		OnHand:             int(removedProduct.OnHand),
-	}
-
-	server.RespondWithJSON(w, http.StatusOK, response)
+	server.RespondWithJSON(w, http.StatusOK, removedProduct)
 }
 
 func (cfg *HandlerSiteConfig) AdminChangePrice(w http.ResponseWriter, r *http.Request) {
@@ -183,7 +142,7 @@ func (cfg *HandlerSiteConfig) AdminChangePrice(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	authorized, err := cfg.IsUserAdmin(r.Context(), requestUserID)
+	authorized, err := admindb.IsUserAdmin(requestUserID, r.Context(), cfg.SiteConfig)
 
 	if err != nil {
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
@@ -257,7 +216,7 @@ func (cfg *HandlerSiteConfig) AdminAddQuantity(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	authorized, err := cfg.IsUserAdmin(r.Context(), requestUserID)
+	authorized, err := admindb.IsUserAdmin(requestUserID, r.Context(), cfg.SiteConfig)
 
 	if err != nil {
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
@@ -337,7 +296,7 @@ func (cfg *HandlerSiteConfig) AdminRemoveQuantity(w http.ResponseWriter, r *http
 		return
 	}
 
-	authorized, err := cfg.IsUserAdmin(r.Context(), requestUserID)
+	authorized, err := admindb.IsUserAdmin(requestUserID, r.Context(), cfg.SiteConfig)
 
 	if err != nil {
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
