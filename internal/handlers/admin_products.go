@@ -108,10 +108,10 @@ func (cfg *HandlerSiteConfig) AdminRemoveProduct(w http.ResponseWriter, r *http.
 		return
 	}
 
-	_, err = cfg.DbQueries.FindProduct(r.Context(), productID)
+	removedProduct, err := admindb.RemoveProductFromSite(productID, r.Context(), cfg.SiteConfig)
 
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, admindb.ErrProductNotFound) {
 			server.RespondWithError(w, http.StatusNotFound, string(server.MsgNotFound), err)
 			return
 		}
@@ -119,23 +119,7 @@ func (cfg *HandlerSiteConfig) AdminRemoveProduct(w http.ResponseWriter, r *http.
 		return
 	}
 
-	removedProduct, err := cfg.DbQueries.RemoveProduct(r.Context(), productID)
-
-	if err != nil {
-		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
-		return
-	}
-
-	response := product{
-		ProductId:          removedProduct.ProductID,
-		ProductName:        removedProduct.ProductName,
-		UpcId:              removedProduct.UpcID,
-		ProductDescription: &removedProduct.ProductDescription.String,
-		CurrentPrice:       removedProduct.CurrentPrice,
-		OnHand:             int(removedProduct.OnHand),
-	}
-
-	server.RespondWithJSON(w, http.StatusOK, response)
+	server.RespondWithJSON(w, http.StatusOK, removedProduct)
 }
 
 func (cfg *HandlerSiteConfig) AdminChangePrice(w http.ResponseWriter, r *http.Request) {

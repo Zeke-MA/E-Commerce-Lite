@@ -11,6 +11,7 @@ import (
 )
 
 var ErrProductAlreadyExists = errors.New("product already exists")
+var ErrProductNotFound = errors.New("product not found")
 
 func IsUserAdmin(userId uuid.UUID, ctx context.Context, cfg *config.SiteConfig) (bool, error) {
 	adminCheck, err := cfg.DbQueries.IsAdmin(ctx, userId)
@@ -57,6 +58,27 @@ func AddProductToSite(productID, productName, upcID, currentPrice string, produc
 	}
 
 	return insertProduct, nil
+}
+
+func RemoveProductFromSite(productID string, ctx context.Context, cfg *config.SiteConfig) (database.Product, error) {
+	productFound, err := productExists(productID, ctx, cfg)
+
+	if err != nil {
+		return database.Product{}, err
+	}
+
+	if !productFound {
+		return database.Product{}, ErrProductNotFound
+	}
+
+	removeProduct, err := cfg.DbQueries.RemoveProduct(ctx, productID)
+
+	if err != nil {
+		return database.Product{}, err
+	}
+
+	return removeProduct, nil
+
 }
 
 // Check if product already exists helper to determine if action can or will be taken
