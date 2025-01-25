@@ -24,7 +24,7 @@ A **powerful yet simple backend** built for e-commerce using **Go**. This projec
    - Basic order creation flow (cart → order)
 
 4. **RESTful API Endpoints**  
-   - Essential endpoints for products, users, and orders using Go’s standard `net/http` library and Gorilla Mux
+   - Essential endpoints for products, users, and orders using Go’s standard `net/http` package and Gorilla Mux
 
 5. **Pluggable Architecture (Future)**  
    - Plans to incorporate Redis caching for improved performance  
