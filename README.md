@@ -1,17 +1,12 @@
 # E-Commerce Lite
 
-A **powerful yet simple backend** built for e-commerce using **Go**. This project provides user authentication, authorization, and an admin portal to manage products and users. Future updates will introduce additional features like caching with Redis to optimize performance.
+A **powerful yet simple backend** built for e-commerce using **Go**. This project provides user authentication, authorization, and an admin endpoint to manage products. Future updates will introduce additional features like caching with Redis to optimize performance.
 
 ## Table of Contents
 - [Features](#features)
 - [Technologies Used](#technologies-used)
 - [Getting Started](#getting-started)
   - [Installation](#installation)
-- [Usage](#usage)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
 
 ---
 
@@ -39,12 +34,12 @@ A **powerful yet simple backend** built for e-commerce using **Go**. This projec
 
 ## Technologies Used
 
-- **Backend**: Go (Golang) with the built-in `net/http` standard library  
+- **Backend**: Go with `net/http` package
 - **Router**: [Gorilla Mux](https://github.com/gorilla/mux)  
 - **Database**: PostgreSQL  
-- **Authentication**: *(JWT)*
+- **Authentication**: *(JWT)* (bcrypt & golang-jwt/jwt/v5)
 - **Cache (Planned)**: Redis  
-- **Containerization (Optional)**: Docker  
+- **Containerization (Database)**: Docker  
 
 ---
 
@@ -60,7 +55,7 @@ A **powerful yet simple backend** built for e-commerce using **Go**. This projec
    ```
 
 2. **Set up your environment variables**
-    Create a .env file or export environment variables in your shell (e.g., .bashrc, .zshrc, or Windows Environment Variables). Below is an example using a .env file in the project root:
+    Create a .env file with the following values in the root of the project:
    ```bash
     PORT=PORT
     DATABASE_URL=DATABASE_URL
@@ -73,8 +68,8 @@ A **powerful yet simple backend** built for e-commerce using **Go**. This projec
 3. **Build and Run**
     ```bash
     # Build the Go application
-    go build -o ecomm-lite
+    go build -o ecom-lite
 
     # Run the binary
-    ./ecomm-lite
+    ./ecom-lite
     ```
