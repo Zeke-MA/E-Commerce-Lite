@@ -9,4 +9,5 @@ const (
 	MsgNotFound      HttpResponseMessages = "Not Found"
 	MsgUnauthorized  HttpResponseMessages = "Unauthorized Request"
 	MsgBadRequest    HttpResponseMessages = "Bad Request"
+	MsgNoContent     HttpResponseMessages = "No Content Change"
 )

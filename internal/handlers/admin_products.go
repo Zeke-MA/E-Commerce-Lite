@@ -163,39 +163,17 @@ func (cfg *HandlerSiteConfig) AdminChangePrice(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	dbFoundProduct, err := cfg.DbQueries.FindProduct(r.Context(), productID)
+	dbPriceChange, err := admindb.UpdateProductPrice(productID, productPriceChange.NewPrice, r.Context(), cfg.SiteConfig)
 
 	if err != nil {
+		if errors.Is(err, admindb.ErrNoPriceDifference) {
+			server.RespondWithError(w, http.StatusNoContent, string(server.MsgNoContent), err)
+			return
+		}
 		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
-		return
 	}
 
-	if dbFoundProduct.CurrentPrice == productPriceChange.NewPrice {
-		server.RespondWithJSON(w, http.StatusNotModified, nil)
-	}
-
-	priceUpdate := database.UpdateProductPriceParams{
-		CurrentPrice: productPriceChange.NewPrice,
-		ProductID:    productID,
-	}
-
-	dbPriceUpdate, err := cfg.DbQueries.UpdateProductPrice(r.Context(), priceUpdate)
-
-	if err != nil {
-		server.RespondWithError(w, http.StatusInternalServerError, string(server.MsgInternalError), err)
-		return
-	}
-
-	responseUpdate := product{
-		ProductId:          productID,
-		ProductName:        dbPriceUpdate.ProductName,
-		UpcId:              dbPriceUpdate.UpcID,
-		ProductDescription: &dbPriceUpdate.ProductDescription.String,
-		CurrentPrice:       productPriceChange.NewPrice,
-		OnHand:             int(dbPriceUpdate.OnHand),
-	}
-
-	server.RespondWithJSON(w, http.StatusOK, responseUpdate)
+	server.RespondWithJSON(w, http.StatusOK, dbPriceChange)
 }
 
 func (cfg *HandlerSiteConfig) AdminAddQuantity(w http.ResponseWriter, r *http.Request) {
